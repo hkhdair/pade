@@ -78,13 +78,11 @@ class ConsumerAgent(Agent):
 
 if __name__ == '__main__':
     
-    agents = []
     order = {'title' : 'The Lord of the Rings', 'author' : 'J. R. R. Tolkien', 'qty' : 5}
-       
+
     #consumidor = ConsumerAgent(AID('Lucas@192.168.0.100:2004'), ['Saraiva', 'Cultura', 'Nobel'], order)
     consumidor = ConsumerAgent(AID('Lucas'), ['Saraiva', 'Cultura', 'Nobel'], order)
-    
+
     consumidor.set_ams()
-    agents.append(consumidor)
-    
+    agents = [consumidor]
     start_loop(agents)

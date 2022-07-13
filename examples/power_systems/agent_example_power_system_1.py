@@ -93,14 +93,17 @@ if __name__ == '__main__':
 
     agents_per_process = 2
     c = 0
-    agents = list()
-    for i in range(agents_per_process):
+    agents = []
+    for _ in range(agents_per_process):
         port = int(argv[1]) + c
-        power_flow_agent_name = 'power_flow_agent_{}@localhost:{}'.format(port, port)
+        power_flow_agent_name = f'power_flow_agent_{port}@localhost:{port}'
         power_flow_agent = PowerFlowAgent(AID(name=power_flow_agent_name))
         agents.append(power_flow_agent)
-        
-        request_voltage_agent_name = 'request_voltage_agent_{}@localhost:{}'.format(port - 10000, port - 10000)
+
+        request_voltage_agent_name = (
+            f'request_voltage_agent_{port - 10000}@localhost:{port - 10000}'
+        )
+
         request_voltage_agent = RequestVoltageAgent(AID(name=request_voltage_agent_name), power_flow_agent_name)
         agents.append(request_voltage_agent)
 

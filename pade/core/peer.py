@@ -43,12 +43,14 @@ class PeerProtocol(Protocol):
         sended_message = None
 
         for message in self.fact.messages:
-            if int(message[0].port) == int(peer.port):
-                if str(message[0].host) == 'localhost' and str(peer.host) == '127.0.0.1' or \
-                   str(message[0].host) == str(peer.host):
-                    self.send_message(pickle.dumps(message[1]))
-                    sended_message = message
-                    break
+            if int(message[0].port) == int(peer.port) and (
+                str(message[0].host) == 'localhost'
+                and str(peer.host) == '127.0.0.1'
+                or str(message[0].host) == str(peer.host)
+            ):
+                self.send_message(pickle.dumps(message[1]))
+                sended_message = message
+                break
         if sended_message is not None:
             self.fact.messages.remove(sended_message)
 
@@ -95,33 +97,26 @@ class PeerProtocol(Protocol):
             if message is not None and not isinstance(message, int):
                 self.transport.write(message)
                 self.message = None
-            else:
-                # Caso a variável self.mosaik_msg_id não tenha o valor
-                # None, significa que ela está armazenando o ID da 
-                # mensagem step que originou a requisição assíncrona
-                # e que o método step() está aguardando a finalização
-                # da mensagem assíncrona. Entrar neste if significa
-                # que a resposta da requisição assíncrona foi recebida
-                if self.mosaik_msg_id:
-                    try:
-                        message = next(self.await_gen)    
-                    except StopIteration as e:
-                        message = e.value
-                    if message is not None:
-                        self.transport.write(message)
-                        self.message = None
-                        self.mosaik_msg_id = None
-                        self.await_gen = None
-                else:
-                    # Caso o valor retornado por _process_message()
-                    # seja um inteiro, representando o ID da mensagem
-                    # Mosaik que está pausada aguardando o resultado
-                    # da requisição assíncrona, esse valor é armazenado
-                    # na variável self.mosaik_msg_id, e o gerador que retornou
-                    # este valor é armazenado na variável self.await_gen
-                    self.mosaik_msg_id = message
-                    self.await_gen = gen
+            elif self.mosaik_msg_id:
+                try:
+                    message = next(self.await_gen)    
+                except StopIteration as e:
+                    message = e.value
+                if message is not None:
+                    self.transport.write(message)
                     self.message = None
+                    self.mosaik_msg_id = None
+                    self.await_gen = None
+            else:
+                # Caso o valor retornado por _process_message()
+                # seja um inteiro, representando o ID da mensagem
+                # Mosaik que está pausada aguardando o resultado
+                # da requisição assíncrona, esse valor é armazenado
+                # na variável self.mosaik_msg_id, e o gerador que retornou
+                # este valor é armazenado na variável self.await_gen
+                self.mosaik_msg_id = message
+                self.await_gen = gen
+                self.message = None
 
     def got_mosaik_message(self, message):
         self.transport.write(message)

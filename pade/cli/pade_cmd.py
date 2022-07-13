@@ -116,25 +116,16 @@ def main(config):
 
     secure = config.get('secure')
 
-    processes = list()
+    processes = []
     # -------------------------------------------------------------
     # inicializa o servico web de gerenciamento de agentes do PADE
     # -------------------------------------------------------------
     pade_web = config.get('pade_web')
-    if pade_web is None:
+    if pade_web is not None and pade_web['active'] or pade_web is None:
         p = FlaskServerProcess(secure)
         p.daemon = True
         p.start()
         processes.append(p)
-    else:
-        if pade_web['active']:
-            p = FlaskServerProcess(secure)
-            p.daemon = True
-            p.start()
-            processes.append(p)
-        else:
-            pass
-    
     # -------------------------------------------------------------
     # inicializa o banco de dados do PADE e o agente AMS
     # -------------------------------------------------------------
@@ -144,30 +135,25 @@ def main(config):
     from pade.core import new_ams
 
     if pade_ams is None:
-        commands = 'python {} {} {} {} {}'.format(new_ams.__file__,
-                                               session['username'],
-                                               session['email'],
-                                               session['password'],
-                                               8000)
+        commands = f"python {new_ams.__file__} {session['username']} {session['email']} {session['password']} 8000"
+
+        commands = (
+            shlex.split(commands, posix=False)
+            if sys.platform == 'win32'
+            else shlex.split(commands)
+        )
+
+        p = subprocess.Popen(commands, stdin=subprocess.PIPE)
+        processes.append(p)
+    elif pade_ams['launch']:
+        commands = f"python {new_ams.__file__} {session['username']} {session['email']} {session['password']} {pade_ams['port']}"
+
         if sys.platform == 'win32':
             commands = shlex.split(commands, posix=False)
         else:
             commands = shlex.split(commands)
         p = subprocess.Popen(commands, stdin=subprocess.PIPE)
         processes.append(p)
-    else:
-        if pade_ams['launch']:
-            commands = 'python {} {} {} {} {}'.format(new_ams.__file__,
-                                                   session['username'],
-                                                   session['email'],
-                                                   session['password'],
-                                                   pade_ams['port'])
-            if sys.platform == 'win32':
-                commands = shlex.split(commands, posix=False)
-            else:
-                commands = shlex.split(commands)
-            p = subprocess.Popen(commands, stdin=subprocess.PIPE)
-            processes.append(p)
 
     # -------------------------------------------------------------
     # inicializa o agente Sniffer
@@ -178,36 +164,30 @@ def main(config):
 
     if pade_sniffer is None:
         time.sleep(2.0)
-        commands = 'python {} {}'.format(sniffer.__file__,
-                                         8001)
+        commands = f'python {sniffer.__file__} 8001'
         if sys.platform == 'win32':
             commands = shlex.split(commands, posix=False)
         else:
             commands = shlex.split(commands)
         p = subprocess.Popen(commands, stdin=subprocess.PIPE)
         processes.append(p)
-    else:
-        if pade_sniffer['active']:
-            time.sleep(2.0)
-            commands = 'python {} {}'.format(sniffer.__file__,
-                                             pade_sniffer['port'])
-            if sys.platform == 'win32':
-                commands = shlex.split(commands, posix=False)
-            else:
-                commands = shlex.split(commands)
-            p = subprocess.Popen(commands, stdin=subprocess.PIPE)
-            processes.append(p)   
+    elif pade_sniffer['active']:
+        time.sleep(2.0)
+        commands = f"python {sniffer.__file__} {pade_sniffer['port']}"
+        if sys.platform == 'win32':
+            commands = shlex.split(commands, posix=False)
         else:
-            pass
-
+            commands = shlex.split(commands)
+        p = subprocess.Popen(commands, stdin=subprocess.PIPE)
+        processes.append(p)
     # -------------------------------------------------------------
     # inicializa os agentes PADE
     # -------------------------------------------------------------
     time.sleep(3.0)
     port_ = port
     for agent_file in agent_files:
-        for i in range(num):
-            commands = 'python {} {}'.format(agent_file, port_)
+        for _ in range(num):
+            commands = f'python {agent_file} {port_}'
             if sys.platform == 'win32':
                 commands = shlex.split(commands, posix=False)
             else:
@@ -219,7 +199,7 @@ def main(config):
 
     while True:
         time.sleep(2.0)
-        
+
         if interrupted:
             click.echo(click.style('\nStoping PADE...', fg='red'))
             for p in processes:
@@ -242,24 +222,23 @@ def cmd():
 @click.option('--password', prompt=True, hide_input=True, default='12345')
 @click.option('--config_file', is_eager=True, expose_value=False, callback=run_config_file)
 def start_runtime(num, agent_files, port, secure, pade_ams, pade_web, pade_sniffer, username, password):
-    config = dict()
-    config['agent_files'] = agent_files
-    config['num'] = num
-    config['port'] = port
-    config['secure'] = secure
-    config['session'] = dict()
+    config = {
+        'agent_files': agent_files,
+        'num': num,
+        'port': port,
+        'secure': secure,
+        'session': {},
+    }
+
     config['session']['username'] = username
     config['session']['email'] = 'pade_user@pade.com'
     config['session']['password'] = password
-    config['pade_ams'] = dict()
-    config['pade_ams']['launch'] = True
-    config['pade_ams']['host'] = 'localhost'
-    config['pade_ams']['port'] = 8000
-    config['pade_sniffer'] = dict()
+    config['pade_ams'] = {'launch': True, 'host': 'localhost', 'port': 8000}
+    config['pade_sniffer'] = {}
     config['pade_sniffer']['active'] = pade_sniffer
     config['pade_sniffer']['host'] = 'localhost'
     config['pade_sniffer']['port'] = 8001
-    config['pade_web'] = dict()
+    config['pade_web'] = {}
     config['pade_web']['active'] = pade_web
     config['pade_web']['host'] = 'localhost'
     config['pade_web']['port'] = 5000

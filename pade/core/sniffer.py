@@ -55,29 +55,26 @@ class Sniffer(Agent):
     """This is the class that implements the AMS agent."""
 
     def __init__(self, host='localhost', port=8001, debug=False):
-        self.sniffer_aid = AID('sniffer@' + str(host) + ':' + str(port))
+        self.sniffer_aid = AID(f'sniffer@{str(host)}:{str(port)}')
         super(Sniffer, self).__init__(self.sniffer_aid, debug=debug)
-        self.sniffer = {'name':str(host),'port':str(port)}      
+        self.sniffer = {'name':str(host),'port':str(port)}
         self.host = host
         self.port = port
-        self.messages_buffer = dict()
+        self.messages_buffer = {}
         self.buffer_control = True
-        self.agent_db_id = dict()
+        self.agent_db_id = {}
 
     def handle_store_messages(self):
         for sender, messages in self.messages_buffer.items():
-            if self.agent_db_id.get(sender) == None:
+            if self.agent_db_id.get(sender) is None:
                 r = ENGINE.execute(AGENTS.select(AGENTS.c.name.is_(sender)))
                 a = r.fetchall()
                 if a != []:
                     agent_id = a[0][0]
                     self.agent_db_id[sender] = agent_id
                 else:
-                    print('Agent does not exist in database: {}'.format(sender))
+                    print(f'Agent does not exist in database: {sender}')
                 r.close()
-            else:
-                pass
-
             for message in messages:
                 receivers = ';'.join([i.localname for i in message.receivers])
                 content = message.content
@@ -103,7 +100,7 @@ class Sniffer(Agent):
                 if self.debug:
                     display_message(self.aid.name, 'Message stored')
 
-        self.messages_buffer = dict()
+        self.messages_buffer = {}
         self.buffer_control = True
 
     @inlineCallbacks
@@ -116,7 +113,7 @@ class Sniffer(Agent):
             content = loads(message.content)
             if content['ref'] == 'MESSAGE':
                 _message = content['message']
-                if self.messages_buffer.get(message.sender.name) == None:
+                if self.messages_buffer.get(message.sender.name) is None:
                     self.messages_buffer[message.sender.name] = [_message]
                 else:
                     messages = self.messages_buffer[message.sender.name]

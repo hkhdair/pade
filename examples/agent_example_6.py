@@ -97,14 +97,12 @@ if __name__ == '__main__':
 
     agents_per_process = 2
     c = 0
-    agents = list()
-    for i in range(agents_per_process):
-        port = int(argv[1]) + c        
-        k = 10000
-        participants = list()
-
-        agent_name = 'agent_publisher_{}@localhost:{}'.format(port, port)
-        participants.append(agent_name)
+    agents = []
+    k = 10000
+    for _ in range(agents_per_process):
+        port = int(argv[1]) + c
+        agent_name = f'agent_publisher_{port}@localhost:{port}'
+        participants = [agent_name]
         agent_pub_1 = AgentPublisher(AID(name=agent_name))
         agents.append(agent_pub_1)
 
@@ -113,12 +111,12 @@ if __name__ == '__main__':
         msg.set_content('Subscription request')
         msg.add_receiver(agent_pub_1.aid)
 
-        agent_name = 'agent_subscriber_{}@localhost:{}'.format(port + k, port + k)
+        agent_name = f'agent_subscriber_{port + k}@localhost:{port + k}'
         participants.append(agent_name)
         agent_sub_1 = AgentSubscriber(AID(name=agent_name), msg)
         agents.append(agent_sub_1)
 
-        agent_name = 'agent_subscriber_{}@localhost:{}'.format(port - k, port - k)
+        agent_name = f'agent_subscriber_{port - k}@localhost:{port - k}'
         agent_sub_2 = AgentSubscriber(AID(name=agent_name), msg)
         agents.append(agent_sub_2)
 

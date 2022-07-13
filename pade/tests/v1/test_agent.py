@@ -42,12 +42,9 @@ if __name__ == '__main__':
 
     test_agent_participant = Teste(AID('test_agent_participant'))
 
-    agents = list()
+    set_ams('localhost', 8000)
 
-    print id(test_agent_initiator)
-    print id(test_agent_participant)
+    set_ams('localhost', 8000)
 
-    agents.append(test_agent_participant)
-    agents.append(test_agent_initiator)
-    
+    agents = [test_agent_participant, test_agent_initiator]
     start_loop(agents)

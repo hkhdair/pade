@@ -37,32 +37,28 @@ class AID(object):
                 ContentObject co
         """
 
-        if name is not None:
-            if '@' in name:
-                self.name = name
-                self.localname, adress = self.name.split('@')
-                self.addresses = [adress]
-                if ':' in adress:
-                    self.host, self.port = adress.split(':')
-                    self.port = int(self.port)
-                else:
-                    self.host, self.port = None, None
-            else:
-                self.localname = name
-                self.host = 'localhost'
-                self.port = random.randint(1024, 64024)
-                self.name = self.localname + '@' + self.host +  ':'  + str(self.port) 
-                self.addresses = [self.host + ':' + str(self.port)]
-        else:
+        if name is None:
             self.name = None  # string
-        if resolvers is not None:
-            self.resolvers = resolvers
+        elif '@' in name:
+            self.name = name
+            self.localname, adress = self.name.split('@')
+            self.addresses = [adress]
+            if ':' in adress:
+                self.host, self.port = adress.split(':')
+                self.port = int(self.port)
+            else:
+                self.host, self.port = None, None
         else:
-            self.resolvers = list()  # AID
+            self.localname = name
+            self.host = 'localhost'
+            self.port = random.randint(1024, 64024)
+            self.name = f'{self.localname}@{self.host}:{self.port}'
+            self.addresses = [f'{self.host}:{self.port}']
+        self.resolvers = resolvers if resolvers is not None else list()
         if userDefinedProperties is not None:
             self.userDefinedProperties = userDefinedProperties
         else:
-            self.userDefinedProperties = list()  # properties
+            self.userDefinedProperties = []
 
     def getName(self):
         """
@@ -81,7 +77,7 @@ class AID(object):
         sets local name of the agent (string)
         """
         self.localname = name
-        self.name = self.localname + '@' + self.host + ':' + str(self.port)
+        self.name = f'{self.localname}@{self.host}:{str(self.port)}'
             
     def getHost(self):
         """
@@ -94,7 +90,7 @@ class AID(object):
         sets host of the agent (string)
         """
         self.host = host
-        self.name = self.localname + '@' + self.host + ':' + str(self.port)
+        self.name = f'{self.localname}@{self.host}:{str(self.port)}'
         
     def getPort(self):
         """
@@ -107,7 +103,7 @@ class AID(object):
         sets port of the agent (string)
         """
         self.port = port
-        self.name = self.localname + '@' + self.host + ':' + str(self.port)
+        self.name = f'{self.localname}@{self.host}:{str(self.port)}'
     
     def getAddresses(self):
         """
@@ -148,31 +144,25 @@ class AID(object):
         if other is None:
             return True
 
-        if (self.getName() is not None and other.getName() is not None
-                and not (other.getName() in self.getName())):
+        if (
+            self.getName() is not None
+            and other.getName() is not None
+            and other.getName() not in self.getName()
+        ):
             return False
         if (len(self.getAddresses()) > 0 and len(other.getAddresses()) > 0):
             for oaddr in other.getAddresses():
-                found = False
-                for saddr in self.getAddresses():
-                    if (oaddr in saddr):
-                        found = True
+                found = any((oaddr in saddr) for saddr in self.getAddresses())
                 if not found:
                     return False
         if (len(self.getResolvers()) > 0 and len(other.getResolvers()) > 0):
             for oaddr in other.getResolvers():
-                found = False
-                for saddr in self.getResolvers():
-                    if (oaddr in saddr):
-                        found = True
+                found = any((oaddr in saddr) for saddr in self.getResolvers())
                 if not found:
                     return False
         if (len(self.getProperties()) > 0 and len(other.getProperties()) > 0):
             for oaddr in other.getProperties():
-                found = False
-                for saddr in self.getProperties():
-                    if (oaddr in saddr):
-                        found = True
+                found = any((oaddr in saddr) for saddr in self.getProperties())
                 if not found:
                     return False
         return True
@@ -200,10 +190,7 @@ class AID(object):
         res2 = other.getResolvers()
         res1.sort()
         res2.sort()
-        if res1 != res2:
-            return False
-
-        return True
+        return res1 == res2
 
     def __ne__(self, other):
         """
@@ -230,9 +217,9 @@ class AID(object):
         """
         sb = ""
         if self.getName() is not None:
-            sb = sb + ":name " + str(self.getName()) + "\n"
+            sb = f"{sb}:name {str(self.getName())}" + "\n"
         if self.getAddresses() != []:
-            sb = sb + ":addresses \n(sequence\n"
+            sb += ":addresses \n(sequence\n"
             for i in self.getAddresses():
                 sb = sb + str(i) + '\n'
             sb = sb + ")\n"
@@ -241,11 +228,7 @@ class AID(object):
             for i in self.getResolvers():
                 sb = sb + str(i) + '\n'
             sb = sb + ")\n"
-        if sb != "":
-            sb = "(agent-identifier\n" + sb + ")\n"
-        else:
-            sb = "None"
-
+        sb = "(agent-identifier\n" + sb + ")\n" if sb != "" else "None"
         return sb
 
     def __repr__(self):
@@ -276,9 +259,7 @@ class AID(object):
 
         return string
         """
-        sb = "<" + tag + ">" + content + "</" + tag + ">"
-
-        return sb
+        return f"<{tag}>{content}</{tag}>"
 
 if __name__ == '__main__':
     

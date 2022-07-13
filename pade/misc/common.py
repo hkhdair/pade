@@ -76,15 +76,8 @@ class PadeSession(object):
                
         self.remote_ams = remote_ams
 
-        if name is not None:
-            self.name = name
-        else:
-            self.name = str(uuid.uuid1())[:13]
-
-        if ams is not None:
-            self.ams = ams
-        else:
-            self.ams = {'name': 'localhost', 'port': 8000}
+        self.name = name if name is not None else str(uuid.uuid1())[:13]
+        self.ams = ams if ams is not None else {'name': 'localhost', 'port': 8000}
 
     def add_agent(self, agent):
         self.agents.append(agent)
@@ -114,21 +107,19 @@ class PadeSession(object):
 
     def _verify_user_in_session(self, db_session):
         # in case it is an active session
-        if db_session.state == 'Active':
-            users = db_session.users
-            print(users)
-            # iterates through registered users in the database.S
-            for user in users:
-                if user.username == self.user_login['username']:
-                    if user.verify_password(self.user_login['password']):
-                        break
-                    else:
-                        raise UserWarning('The password is wrong!')
-            else:
-                raise UserWarning('The username is wrong!')
-        # in case it is not an active session
-        else:
+        if db_session.state != 'Active':
             raise UserWarning('This session name has been used before. Please, choose another!')
+        users = db_session.users
+        print(users)
+        # iterates through registered users in the database.S
+        for user in users:
+            if user.username == self.user_login['username']:
+                if user.verify_password(self.user_login['password']):
+                    break
+                else:
+                    raise UserWarning('The password is wrong!')
+        else:
+            raise UserWarning('The username is wrong!')
 
     def _initialize_database(self):
         db.create_all()
@@ -160,7 +151,7 @@ class PadeSession(object):
             # registers the users, in case they exist, in the database
 
             if len(self.users) != 0:
-                users_db = list()
+                users_db = []
                 for user in self.users:
                     u = User(username=user['username'],
                              email=user['email'],
@@ -171,7 +162,6 @@ class PadeSession(object):
                 db.session.add_all(users_db)
                 db.session.commit()
 
-        # in case there is a session with this name
         else:
 
             self._verify_user_in_session(db_session)
@@ -184,7 +174,7 @@ class PadeSession(object):
 
         if self.remote_ams:
             self._verify_remote_session()
-            
+
         else:
 
             # instantiates the class responsible for launching the web
@@ -205,7 +195,7 @@ class PadeSession(object):
             self._initialize_database()
 
             i = 1.0
-            agents_process = list()
+            agents_process = []
             for agent in self.agents:
                 a = AgentProcess(agent, self.ams, i)
                 # a.daemon = True
@@ -241,21 +231,20 @@ class CompRegisterUser(FipaRequestProtocol):
     def handle_inform(self, message):
         super(CompRegisterUser, self).handle_inform(message)
         content = loads(message.content)
-        if type(content) == dict:
-            if content['ref'] == "REGISTER":
-                user_login = content['content']
-                print(user_login)
-                if user_login:
-                    i = 1.0
-                    for agent in self.session.agents:
-                        reactor.callLater(i, self.session._listen_agent, agent)
-                        i += 0.2
+        if type(content) == dict and content['ref'] == "REGISTER":
+            user_login = content['content']
+            print(user_login)
+            if user_login:
+                i = 1.0
+                for agent in self.session.agents:
+                    reactor.callLater(i, self.session._listen_agent, agent)
+                    i += 0.2
 
-                    self.agent.pause_agent()
+                self.agent.pause_agent()
 
-                else:
-                    reactor.stop()
-                    raise Exception('User authentication failed.')
+            else:
+                reactor.stop()
+                raise Exception('User authentication failed.')
                     
 class ValidadeUserAgent(Agent):
 

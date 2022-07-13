@@ -84,7 +84,7 @@ class InitiatorAgent(Agent):
     
     def __init__(self, aid):
         Agent.__init__(self, aid)
-        
+
         order = {'type' : 'order', 'qty' : 100.0}
         message = ACLMessage(ACLMessage.CFP)
         message.set_protocol(ACLMessage.FIPA_CONTRACT_NET_PROTOCOL)

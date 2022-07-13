@@ -30,7 +30,7 @@ class Simulator(object):
         self.instances = []
         self.results = []
 
-        for i in range(num_inst):
+        for _ in range(num_inst):
             inst = Simulator.models[model](init_val)
             self.results.append(next(inst))  # Initialize generator
             self.instances.append(inst)

@@ -65,7 +65,7 @@ class Session(db.Model):
     users = db.relationship('User', backref='session')
 
     def __repr__(self):
-        return "Session %s" % self.name
+        return f"Session {self.name}"
 
 
 class User(UserMixin, db.Model):
@@ -89,7 +89,7 @@ class User(UserMixin, db.Model):
         return check_password_hash(self.password_hash, password)
 
     def __repr__(self):
-        return 'Username: %s' % self.username
+        return f'Username: {self.username}'
 
 
 class AgentModel(db.Model):
@@ -103,7 +103,7 @@ class AgentModel(db.Model):
     messages = db.relationship('Message', backref='agent')
 
     def __repr__(self):
-        return 'Agent %s' % self.name
+        return f'Agent {self.name}'
 
 
 class Message(db.Model):
@@ -122,7 +122,7 @@ class Message(db.Model):
     language = db.Column(db.String)
 
     def __repr__(self):
-        return 'Message %s' % self.id
+        return f'Message {self.id}'
 
 
 class RemoteSession(db.Model):
@@ -133,7 +133,7 @@ class RemoteSession(db.Model):
     last_updated = db.Column(db.DateTime)
 
     def __repr__(self):
-        return 'Ip address %s' % self.ip
+        return f'Ip address {self.ip}'
 
     def __init__(self, ip, content, time):
         self.ip = ip
@@ -257,11 +257,10 @@ def login():
         password = request.form.get('password', type=str)
         remember = request.form.get('remember', type=bool)
         user = User.query.filter_by(username=user).first()
-        if user is not None and user.verify_password(password):
-            login_user(user, remember)
-            return redirect(url_for('index'))
-        else:
+        if user is None or not user.verify_password(password):
             return render_template('login.html', form=form, countUsers=countUsers)
+        login_user(user, remember)
+        return redirect(url_for('index'))
 
 
 @app.route('/logout', methods=['GET', 'POST'])
@@ -326,24 +325,21 @@ def agent_messages(agent_id):
 
 @app.route('/session/agents', methods=['POST'])
 def manageAgent():
-    agent = request.form.get('stop')
-    if agent:
+    if agent := request.form.get('stop'):
         agent = AgentModel.query.filter_by(id=agent).first()
         agent.state = 'Paused'
         session = agent.session
         agents = session.agents
         return render_template('agentes.html', session=session, agents=agents)
 
-    agent = request.form.get('start')
-    if agent:
+    if agent := request.form.get('start'):
         agent = AgentModel.query.filter_by(id=agent).first()
         agent.state = 'Active'
         session = agent.session
         agents = session.agents
         return render_template('agentes.html', session=session, agents=agents)
 
-    agent = request.form.get('kill')
-    if agent:
+    if agent := request.form.get('kill'):
         agent = AgentModel.query.filter_by(id=agent).first()
         agent.state = 'Dead'
         session = agent.session
@@ -424,10 +420,7 @@ def send_request():
     if request.method == 'POST':
         host = request.form.get('host_ip')
 
-        # Checking if the session hasn't been added already
-        res = RemoteSession.query.filter_by(ip=host).first()
-
-        if res:
+        if res := RemoteSession.query.filter_by(ip=host).first():
             flash(u'This session has already been added, you can see it on the home page', 'warning')
             return render_template('sessions.html')
         elif host == '0.0.0.0':
@@ -435,9 +428,9 @@ def send_request():
             return render_template('sessions.html')
         else:
             try:
-                response = requests.get('http://' + host + ':5000/remote_sessions', timeout=(10, 20))
-
-                if response:
+                if response := requests.get(
+                    f'http://{host}:5000/remote_sessions', timeout=(10, 20)
+                ):
                     data = response.json()
                     time = datetime.datetime.now()
                     save_remote_session(host, response.content, time)
@@ -469,7 +462,7 @@ def diagrams():
 def messages_diagram():
     data = Message.query.order_by(Message.date).all()
     data_diagram = ''
-    msgs_id = list()
+    msgs_id = []
 
     for msg in data:
         if msg.message_id in msgs_id:
@@ -480,7 +473,7 @@ def messages_diagram():
     for msg in data:
         content = msg.content
         sender = msg.sender.split("@")[0]
-        
+
         for receiver in msg.receivers.split(';'):
             receiver_ = str(receiver).split('@')[0]
             performative = msg.performative
@@ -489,8 +482,8 @@ def messages_diagram():
             if len(content) > 50:
                 content = "Content is too big to be displayed :( \n\n Please adjust your message."
 
-            data_diagram += sender + '-->' + receiver_ + ': ' + performative + '\n'
-            data_diagram += sender + '->' + receiver_ + ': ' + content + '\n'
+            data_diagram += f'{sender}-->{receiver_}: {performative}' + '\n'
+            data_diagram += f'{sender}->{receiver_}: {content}' + '\n'
 
     return render_template('messagesDiagrams.html', messages=data_diagram)
 
@@ -546,7 +539,7 @@ def messages():
 
 def generate_agent_avatars():
     # Defining the directory to save the avatars images
-    path = os.path.abspath(os.path.dirname(__file__)) + '/static'
+    path = f'{os.path.abspath(os.path.dirname(__file__))}/static'
 
     # Checking for existing avatars in directory
     files = os.listdir(path)
@@ -559,11 +552,7 @@ def generate_agent_avatars():
         name = str(a)
         name = name[6:-17]
 
-        if any(name in s for s in files):
-            # If any avatar image with the agent name already exists
-            # then nothing is necessary
-            pass
-        else:
+        if all(name not in s for s in files):
             # If no avatar image with the agent name was found
             # then one is created
             img = pagan.Avatar(name, pagan.SHA512)
@@ -579,11 +568,7 @@ def my_post():
 
 def run_server(secure):
     with app.app_context():
-        if secure:
-            login_manager._login_disabled = False
-        else:
-            login_manager._login_disabled = True
-
+        login_manager._login_disabled = not secure
     app.run(host='0.0.0.0', port=5000, debug=None)
 
 

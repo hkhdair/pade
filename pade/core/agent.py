@@ -186,8 +186,7 @@ class AgentFactory(protocol.ClientFactory):
         AgentProtocol
             return a protocol instance
         """
-        protocol = AgentProtocol(self)
-        return protocol
+        return AgentProtocol(self)
 
     def clientConnectionFailed(self, connector, reason):
         """This method is called upon a failure 
@@ -263,13 +262,13 @@ class Agent_(object):
         self.mosaik_connection = None
         self.aid = aid
         self.debug = debug
-        
+
         # ALL: create a aid object with the aid of ams
-        self.ams = dict()
-        self.sniffer = dict()
-        self.behaviours = list()
-        self.system_behaviours = list()
-        self.__messages = list()
+        self.ams = {}
+        self.sniffer = {}
+        self.behaviours = []
+        self.system_behaviours = []
+        self.__messages = []
         self.ILP = None
 
     @property
@@ -317,7 +316,7 @@ class Agent_(object):
     def ams(self, value):
         """AMS
         """
-        self.__ams = dict()
+        self.__ams = {}
         if value == dict():
             self.__ams['name'] = 'localhost'
             self.__ams['port'] = 8000
@@ -338,7 +337,7 @@ class Agent_(object):
     def sniffer(self, value):
         """Sniffer
         """
-        self.__sniffer = dict()
+        self.__sniffer = {}
         if value == dict():
             self.__sniffer['name'] = 'localhost'
             self.__sniffer['port'] = 8001
@@ -391,8 +390,7 @@ class Agent_(object):
             if not issubclass(v.__class__, Behaviour):
                 raise ValueError(
                     'behaviour must be a subclass of the Behaviour class!')
-        else:
-            self.__behaviours = value
+        self.__behaviours = value
 
     @property
     def system_behaviours(self):
@@ -423,8 +421,7 @@ class Agent_(object):
             if not issubclass(v.__class__, Behaviour):
                 raise ValueError(
                     'behaviour must be a subclass of the Behaviour class!')
-        else:
-            self.__system_behaviours = value
+        self.__system_behaviours = value
 
     def react(self, message):
         """This method should be overriden and will
@@ -461,9 +458,9 @@ class Agent_(object):
         message.set_message_id()
         message.set_datetime_now()
 
-        c = 0.0
         if len(message.receivers) >= 20:
             receivers = [message.receivers[i:i+20] for i in range(0, len(message.receivers), 20)]
+            c = 0.0
             for r in receivers:
                 reactor.callLater(c, self._send, message, r)
                 c += 0.5
@@ -508,10 +505,7 @@ class Agent_(object):
                     break
             else:
                 if self.debug:
-                    display_message(
-                        self.aid.localname, 'Agent ' + receiver.name + ' is not active')
-                else:
-                    pass
+                    display_message(self.aid.localname, f'Agent {receiver.name} is not active')
 
     def call_later(self, time, method, *args):
         """Call a method after some time delay
@@ -551,7 +545,7 @@ class Agent_(object):
         message : ACLMessage
             Some message
         """
-        message.receivers = list()
+        message.receivers = []
         for agent_aid in self.agentInstance.table.values():
             if 'ams' not in agent_aid.localname:
                 message.add_receiver(agent_aid)

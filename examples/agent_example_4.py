@@ -28,20 +28,17 @@ class CompContNet1(FipaContractNetProtocol):
 
         best_proposer = None
         higher_power = 0.0
-        other_proposers = list()
+        other_proposers = []
         display_message(self.agent.aid.name, 'Analyzing proposals...')
 
-        i = 1
-
         # logic to select proposals by the higher available power.
-        for message in proposes:
+        for i, message in enumerate(proposes, start=1):
             content = message.content
             power = float(content)
             display_message(self.agent.aid.name,
                             'Analyzing proposal {i}'.format(i=i))
             display_message(self.agent.aid.name,
                             'Power Offered: {pot}'.format(pot=power))
-            i += 1
             if power > higher_power:
                 if best_proposer is not None:
                     other_proposers.append(best_proposer)
@@ -184,26 +181,24 @@ class AgentParticipant(Agent):
 if __name__ == "__main__":
     agents_per_process = 1
     c = 0
-    agents = list()
-    for i in range(agents_per_process):
-        port = int(argv[1]) + c        
-        k = 10000
-        participants = list()
-
-        agent_name = 'agent_participant_{}@localhost:{}'.format(port - k, port - k)
-        participants.append(agent_name)
+    agents = []
+    k = 10000
+    for _ in range(agents_per_process):
+        port = int(argv[1]) + c
+        agent_name = f'agent_participant_{port - k}@localhost:{port - k}'
+        participants = [agent_name]
         agente_part_1 = AgentParticipant(AID(name=agent_name), uniform(100.0, 500.0))
         agents.append(agente_part_1)
 
-        agent_name = 'agent_participant_{}@localhost:{}'.format(port + k, port + k)
+        agent_name = f'agent_participant_{port + k}@localhost:{port + k}'
         participants.append(agent_name)
         agente_part_2 = AgentParticipant(AID(name=agent_name), uniform(100.0, 500.0))
         agents.append(agente_part_2)
 
-        agent_name = 'agent_initiator_{}@localhost:{}'.format(port, port)
+        agent_name = f'agent_initiator_{port}@localhost:{port}'
         agente_init_1 = AgentInitiator(AID(name=agent_name), participants)
         agents.append(agente_init_1)
 
         c += 1000
-    
+
     start_loop(agents)
