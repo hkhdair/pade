@@ -118,14 +118,14 @@ if __name__ == '__main__':
 
     agents_per_process = 2
     c = 0
-    agents = list()
-    for i in range(agents_per_process):
+    agents = []
+    for _ in range(agents_per_process):
         port = int(argv[1]) + c
-        iec61850_agent_name = 'iec61850_agent_{}@localhost:{}'.format(port, port)
+        iec61850_agent_name = f'iec61850_agent_{port}@localhost:{port}'
         iec61850_agent = IEC61850Agent(AID(name=iec61850_agent_name))
         agents.append(iec61850_agent)
-        
-        request_agent_name = 'request_agent_{}@localhost:{}'.format(port - 10000, port - 10000)
+
+        request_agent_name = f'request_agent_{port - 10000}@localhost:{port - 10000}'
         request_agent = RequestAgent(AID(name=request_agent_name), iec61850_agent_name)
         agents.append(request_agent)
 

@@ -7,7 +7,7 @@ from pade.misc.common import PadeSession
 
 def config_agents():
 
-    agents = list()
+    agents = []
 
     s = PadeSession()
     s.add_all_agents(agents)

@@ -49,21 +49,23 @@ class ExampleSim(mosaik_api.Simulator):
         sim_id = len(self.simulators)
         sim = generic_python_simulator.Simulator(model, num, init_val)
         self.simulators.append(sim)
-        return [{'eid': '{}.{}'.format(sim_id, eid), 'type': model, 'rel': []}
-                for eid, inst in enumerate(sim.instances)]
+        return [
+            {'eid': f'{sim_id}.{eid}', 'type': model, 'rel': []}
+            for eid, inst in enumerate(sim.instances)
+        ]
 
     def step(self, time, inputs):
         if inputs:
             print(inputs)
 
         for sid, sim in enumerate(self.simulators):
-            sim_inputs = [None for i in sim.instances]
+            sim_inputs = [None for _ in sim.instances]
             for i, _ in enumerate(sim_inputs):
-                eid = '{}.{}'.format(sid, i)
+                eid = f'{sid}.{i}'
                 if eid in inputs:
                     sim_inputs[i] = sum(inputs[eid]['val_in'].values())
 
-            for i in range(self.step_size):
+            for _ in range(self.step_size):
                 sim.step(sim_inputs)
 
         return time + self.step_size

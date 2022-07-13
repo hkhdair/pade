@@ -342,16 +342,17 @@ class FipaContractNetProtocol(FipaProtocol):
         """
         super(FipaContractNetProtocol, self).on_start()
 
-        if self.is_initiator and self.message is not None:
+        if (
+            self.is_initiator
+            and self.message is not None
+            and self.message.performative == ACLMessage.CFP
+        ):
+            self.cfp_qty = len(self.message.receivers)
+            self.received_qty = 0
+            self.proposes = []
+            self.agent.send(self.message)
 
-            if self.message.performative == ACLMessage.CFP:
-
-                self.cfp_qty = len(self.message.receivers)
-                self.received_qty = 0
-                self.proposes = []
-                self.agent.send(self.message)
-
-                self.timed_behaviour()
+            self.timed_behaviour()
 
     def handle_cfp(self, message):
         """This method should be overridden when implementing a protocol.
@@ -371,8 +372,6 @@ class FipaContractNetProtocol(FipaProtocol):
         """
         self.received_qty += 1
         print_progress_bar(self.received_qty, self.cfp_qty, fill='#', length=50, prefix='CFP responses received')
-        if self.received_qty == self.cfp_qty:
-            pass
             # delayed_calls = reactor.getDelayedCalls()
             # for call in delayed_calls:
             #     call.cancel()
@@ -386,8 +385,6 @@ class FipaContractNetProtocol(FipaProtocol):
         """
         self.received_qty += 1
         print_progress_bar(self.received_qty, self.cfp_qty, fill='#', length=50, prefix='CFP responses received')
-        if self.received_qty == self.cfp_qty:
-            pass
             # delayed_calls = reactor.getDelayedCalls()
             # for call in delayed_calls:
             #     call.cancel()
@@ -467,45 +464,43 @@ class FipaContractNetProtocol(FipaProtocol):
 
         super(FipaContractNetProtocol, self).execute(message)
 
-        if self.filter_protocol.filter(self.message):
-            if self.filter_cfp.filter(self.message):
-                if not self.is_initiator:
-                    self.handle_cfp(message)
+        if not self.filter_protocol.filter(self.message):
+            return
+        if self.filter_cfp.filter(self.message):
+            if not self.is_initiator:
+                self.handle_cfp(message)
 
-            elif self.filter_propose.filter(self.message):
-                if self.is_initiator:
-                    self.proposes.append(message)
-                    self.handle_propose(message)
+        elif self.filter_propose.filter(self.message):
+            if self.is_initiator:
+                self.proposes.append(message)
+                self.handle_propose(message)
 
-                    if self.received_qty == self.cfp_qty:
-                        self.handle_all_proposes(self.proposes)
+                if self.received_qty == self.cfp_qty:
+                    self.handle_all_proposes(self.proposes)
 
-            elif self.filter_refuse.filter(self.message):
-                if self.is_initiator:
-                    self.proposes.append(message)
-                    self.handle_refuse(message)
+        elif self.filter_refuse.filter(self.message):
+            if self.is_initiator:
+                self.proposes.append(message)
+                self.handle_refuse(message)
 
-                    if self.received_qty == self.cfp_qty:
-                        self.handle_all_proposes(self.proposes)
+                if self.received_qty == self.cfp_qty:
+                    self.handle_all_proposes(self.proposes)
 
-            elif self.filter_accept_propose.filter(self.message):
-                if not self.is_initiator:
-                    self.handle_accept_propose(message)
+        elif self.filter_accept_propose.filter(self.message):
+            if not self.is_initiator:
+                self.handle_accept_propose(message)
 
-            elif self.filter_reject_propose.filter(self.message):
-                if not self.is_initiator:
-                    self.handle_reject_propose(message)
+        elif self.filter_reject_propose.filter(self.message):
+            if not self.is_initiator:
+                self.handle_reject_propose(message)
 
-            elif self.filter_failure.filter(self.message):
-                if self.is_initiator:
-                    self.handle_failure(message)
+        elif self.filter_failure.filter(self.message):
+            if self.is_initiator:
+                self.handle_failure(message)
 
-            elif self.filter_inform.filter(self.message):
-                if self.is_initiator:
-                    self.handle_inform(message)
-
-            else:
-                return
+        elif self.filter_inform.filter(self.message):
+            if self.is_initiator:
+                self.handle_inform(message)
 
         else:
             return
@@ -553,9 +548,12 @@ class FipaSubscribeProtocol(FipaProtocol):
         super(FipaSubscribeProtocol, self).on_start()
 
 
-        if self.is_initiator and self.message != None:
-            if self.message.performative == ACLMessage.SUBSCRIBE:
-                self.agent.send(self.message)
+        if (
+            self.is_initiator
+            and self.message != None
+            and self.message.performative == ACLMessage.SUBSCRIBE
+        ):
+            self.agent.send(self.message)
                 # self.timed_behaviour()
 
     def handle_subscribe(self, message):

@@ -82,14 +82,14 @@ if __name__ == '__main__':
 
     agents_per_process = 1
     c = 0
-    agents = list()
-    for i in range(agents_per_process):
+    agents = []
+    for _ in range(agents_per_process):
         port = int(argv[1]) + c
-        time_agent_name = 'agent_time_{}@localhost:{}'.format(port, port)
+        time_agent_name = f'agent_time_{port}@localhost:{port}'
         time_agent = TimeAgent(AID(name=time_agent_name))
         agents.append(time_agent)
-        
-        clock_agent_name = 'agent_clock_{}@localhost:{}'.format(port - 10000, port - 10000)
+
+        clock_agent_name = f'agent_clock_{port - 10000}@localhost:{port - 10000}'
         clock_agent = ClockAgent(AID(name=clock_agent_name), time_agent_name)
         agents.append(clock_agent)
 

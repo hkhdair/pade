@@ -7,7 +7,10 @@ class Sniffer(protocol.Protocol):
     
     def connectionMade(self):
         if self.factory.isClient:
-            self.transport.write('Connection is made with ' + str(self.transport.getPeer()))
+            self.transport.write(
+                f'Connection is made with {str(self.transport.getPeer())}'
+            )
+
         else:
             self.transport.write('You are a client and you are connected!')
         

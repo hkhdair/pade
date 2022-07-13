@@ -51,19 +51,19 @@ class Filter():
     
     def filter(self, message):
         state = True
-        
-        if self.conversation_id != None and self.conversation_id != message.conversation_id:
+
+        if self.conversation_id not in [None, message.conversation_id]:
             state = False
-        
-        if self.sender != None and self.sender != message.sender:
+
+        if self.sender not in [None, message.sender]:
             state = False
-        
-        if self.performative != None and self.performative != message.performative:
+
+        if self.performative not in [None, message.performative]:
             state = False
-        
-        if self.protocol != None and self.protocol != message.protocol:
+
+        if self.protocol not in [None, message.protocol]:
             state = False
-            
+
         return state
 
 if __name__ == '__main__':

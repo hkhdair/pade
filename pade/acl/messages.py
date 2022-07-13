@@ -108,14 +108,13 @@ class ACLMessage(ET.Element):
         self.append(ET.Element('reply-by'))
         self.append(ET.Element('reply-by'))
         self.append(ET.Element('datetime'))
-        
-        if performative != None:
-            if performative.lower() in self.performatives:
-                self.performative = performative.lower()
-                self.find('performative').text = self.performative
-        else:
+
+        if performative is None:
             self.performative = None
 
+        elif performative.lower() in self.performatives:
+            self.performative = performative.lower()
+            self.find('performative').text = self.performative
         self.conversation_id = str(uuid1())
         self.find('conversationID').text = self.conversation_id
 
@@ -149,8 +148,8 @@ class ACLMessage(ET.Element):
         self.system_message = False
         self.datetime = None
         self.sender = None
-        self.receivers = list()
-        self.reply_to = list()
+        self.receivers = []
+        self.reply_to = []
         self.content = None
         self.language = None
         self.encoding = None
@@ -287,13 +286,13 @@ class ACLMessage(ET.Element):
         p = p + str(self.performative) + '\n'
 
         if self.conversation_id:
-            p = p + ":conversationID " + self.conversation_id + '\n'
+            p = f"{p}:conversationID {self.conversation_id}" + '\n'
 
         if self.sender:
-            p = p + ":sender " + str(self.sender) + "\n"
+            p = f"{p}:sender {str(self.sender)}" + "\n"
 
         if self.receivers:
-            p = p + ":receiver\n (set\n"
+            p += ":receiver\n (set\n"
             for i in self.receivers:
                 p = p + str(i) + '\n'
 
@@ -302,13 +301,13 @@ class ACLMessage(ET.Element):
             p = p + ':content "' + str(self.content) + '"\n'
 
         if self.reply_with:
-            p = p + ":reply-with " + self.reply_with + '\n'
+            p = f"{p}:reply-with {self.reply_with}" + '\n'
 
         if self.reply_by:
-            p = p + ":reply-by " + self.reply_by + '\n'
+            p = f"{p}:reply-by {self.reply_by}" + '\n'
 
         if self.in_reply_to:
-            p = p + ":in-reply-to " + self.in_reply_to + '\n'
+            p = f"{p}:in-reply-to {self.in_reply_to}" + '\n'
 
         if self.reply_to:
             p = p + ":reply-to \n" + '(set\n'
@@ -317,16 +316,16 @@ class ACLMessage(ET.Element):
             p = p + ")\n"
 
         if self.language:
-            p = p + ":language " + self.language + '\n'
+            p = f"{p}:language {self.language}" + '\n'
 
         if self.encoding:
-            p = p + ":encoding " + self.encoding + '\n'
+            p = f"{p}:encoding {self.encoding}" + '\n'
 
         if self.ontology:
-            p = p + ":ontology " + self.ontology + '\n'
+            p = f"{p}:ontology {self.ontology}" + '\n'
 
         if self.protocol:
-            p = p + ":protocol " + self.protocol + '\n'
+            p = f"{p}:protocol {self.protocol}" + '\n'
 
         p = p + ")\n"
 
@@ -343,12 +342,8 @@ class ACLMessage(ET.Element):
 
         try:
             system_message = aclmsg.find('system-message').text
-            if system_message == 'True':
-                self.system_message = True
-                self.find('system-message').text = system_message
-            else:
-                self.system_message = False
-                self.find('system-message').text = system_message
+            self.system_message = system_message == 'True'
+            self.find('system-message').text = system_message
         except:
             pass
 
@@ -507,12 +502,8 @@ class ACLMessage(ET.Element):
         self.__dict__.update(state)
 
     def __getstate__(self):
-        # Copy the object's state from self.__dict__ which contains
-        # all our instance attributes. Always use the dict.copy()
-        # method to avoid modifying the original state.
-        state = self.__dict__.copy()
         # Remove the unpicklable entries.
-        return state
+        return self.__dict__.copy()
 
 if __name__ == '__main__':
 

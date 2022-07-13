@@ -25,15 +25,17 @@ class MosaikSim(MosaikCon):
 
     def __init__(self, agent):
         super(MosaikSim, self).__init__(MOSAIK_MODELS, agent)
-        self.entities = list()
+        self.entities = []
 
     def create(self, num, model, init_val):
-        entities_info = list()
+        entities_info = []
         for i in range(num):
             self.entities.append(init_val)
             display_message(self.agent.aid.localname, str(init_val))
             entities_info.append(
-                {'eid': self.sim_id + '.' + str(i), 'type': model, 'rel': []})
+                {'eid': f'{self.sim_id}.{str(i)}', 'type': model, 'rel': []}
+            )
+
         return entities_info
 
     def step(self, time, inputs):
@@ -48,7 +50,7 @@ class MosaikSim(MosaikCon):
             # async call to get data from a simulator entity
             data = {'ExampleSim-0.0.0': ['val_out']}
             value = yield self.get_data_async(data)
-            display_message(self.agent.aid.localname, 'Asynchronous get data: {}'.format(value))
+            display_message(self.agent.aid.localname, f'Asynchronous get data: {value}')
         if time % 1004 == 0 and time != 0:
             # async call to set data to a simulator entity
             data = {"PadeSim-0.0": {
@@ -56,17 +58,15 @@ class MosaikSim(MosaikCon):
                         }
                     }
             yield self.set_data_async(data)
-            display_message(self.agent.aid.localname, 'Asynchronous set data: {}'.format(data))
+            display_message(self.agent.aid.localname, f'Asynchronous set data: {data}')
 
         return time + self.time_step
 
     def get_data(self, outputs):
-        response = dict()
-        for model, list_values in outputs.items():
-            response[model] = dict()
-            for value in list_values:
-                response[model][value] = 1.0
-        return response
+        return {
+            model: {value: 1.0 for value in list_values}
+            for model, list_values in outputs.items()
+        }
 
 
 class AgenteHelloWorld(Agent):
@@ -80,10 +80,10 @@ if __name__ == '__main__':
 
     agents_per_process = 1
     c = 0
-    agents = list()
-    for i in range(agents_per_process):
+    agents = []
+    for _ in range(agents_per_process):
         port = int(argv[1]) + c
-        agent_name = 'agent_example_{}@localhost:{}'.format(port, port)
+        agent_name = f'agent_example_{port}@localhost:{port}'
         agente_hello = AgenteHelloWorld(AID(name=agent_name))
         agents.append(agente_hello)
         c += 500

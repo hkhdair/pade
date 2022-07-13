@@ -35,12 +35,12 @@ class MosaikCon(object):
         self.sim_id = None
         self.msg_id = None
         self.time = 0
-        self.inputs = dict()
-        self.outputs = dict()
-        self.data = dict()
+        self.inputs = {}
+        self.outputs = {}
+        self.data = {}
         self.time_step = time_step
         self.progress = None
-        self.async_requests = list()
+        self.async_requests = []
         self.deferred = None
         self.msg_id_step = None
         self.step_size = 1000
@@ -61,15 +61,14 @@ class MosaikCon(object):
         # à requisições assíncronas dos agentes
         # à outros simuladores ou ao próprio Mosaik.
         if mosaik_msg_id == self.msg_id:
-            if type(content_) is not list:
-                if self.async_requests != []:
-                    async_request = self.async_requests.pop()
-                    if async_request == 'get_progress':
-                        self.handle_get_progress(content_)
-                    elif async_request == 'get_data':
-                        self.handle_get_data(content_)
-                    elif async_request == 'set_data':
-                        self.handle_set_data()
+            if type(content_) is not list and self.async_requests != []:
+                async_request = self.async_requests.pop()
+                if async_request == 'get_progress':
+                    self.handle_get_progress(content_)
+                elif async_request == 'get_data':
+                    self.handle_get_data(content_)
+                elif async_request == 'set_data':
+                    self.handle_set_data()
             return mosaik_msg_id
 
         else:
@@ -129,7 +128,7 @@ class MosaikCon(object):
                         r_ = e.value
                     # se retornar None, o yield foi ativado
                     # se não o retorno é um inteiro
-                    if r_ == None:
+                    if r_ is None:
                         yield self.msg_id
                         try:
                             r = next(r)
@@ -137,9 +136,9 @@ class MosaikCon(object):
                             r = e.value
                     else:
                         r = r_
-                
+
                 # FIX this to a generator implementation
-                
+
                 # Este if serve para verificar se um valor inteiro
                 # está sendo retornado do método step. Se o valor
                 # retornado for None, significa que o agente está
@@ -163,11 +162,7 @@ class MosaikCon(object):
         return self.models
 
     def create(self, num, model, **kargs):
-        entities_info = list()
-        for i in range(num):
-            entities_info.append(
-                {'eid': self.sim_id + '.' + str(i), 'type': model})
-        return entities_info
+        return [{'eid': f'{self.sim_id}.{str(i)}', 'type': model} for i in range(num)]
 
     def setup_done(self):
         pass
@@ -183,12 +178,10 @@ class MosaikCon(object):
         self.agent.mosaik_connection.await_gen = None
 
     def get_data(self, outputs):
-        response = dict()
-        for model, list_values in outputs.items():
-            response[model] = dict()
-            for value in list_values:
-                response[model][value] = None
-        return response
+        return {
+            model: {value: None for value in list_values}
+            for model, list_values in outputs.items()
+        }
 
     def stop(self):
         pass
@@ -230,5 +223,4 @@ class MosaikCon(object):
         a = json.dumps([msg_type, id_, content])
         b = bytes(a, 'utf-8')
         c = int.to_bytes(len(b), 4, byteorder='big')
-        d = c + b
-        return d
+        return c + b

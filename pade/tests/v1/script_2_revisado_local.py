@@ -25,9 +25,9 @@ class BookstoreAgentBehaviour(FipaContractNetProtocol):
     def handle_cfp(self, message):
         FipaContractNetProtocol.handle_cfp(self, message)
         display_message(self.agent.aid.name, 'Request Received')
-        
+
         order = loads(message.content)
-        
+
         for book in self.agent.booksList:
             if book['title'] == order['title'] and book['author'] == order['author']:
                 if book['qty'] >= order['qty']:
@@ -35,12 +35,12 @@ class BookstoreAgentBehaviour(FipaContractNetProtocol):
                     response.set_performative(ACLMessage.PROPOSE)
                     book['book store'] = self.agent.aid.name
                     response.set_content(dumps(book))
-                    self.agent.send(response)
                 else:
                     response = message.create_reply()
                     response.set_performative(ACLMessage.REJECT_PROPOSAL)
                     response.set_content('Request Rejected')
-                    self.agent.send(response)
+
+                self.agent.send(response)
     
     def handle_accept_propose(self, message):
         FipaContractNetProtocol.handle_accept_propose(self, message)
@@ -73,28 +73,24 @@ if __name__ == '__main__':
                          {'title' : 'Harry Potter', 'author' : 'J. K. Roling', 'qty' : 10, 'how much is' : 33.70},
                          {'title' : 'Game of Thrones', 'author' : 'A. M. M. Martin', 'qty' : 10,'how much is' : 23.80}
                          ]
-    
+
     bookslist_Cultura = [{'title' : 'The Lord of the Rings', 'author' : 'J. R. R. Tolkien', 'qty' : 10, 'how much is' : 43.50},
                          {'title' : 'Harry Potter', 'author' : 'J. K. Roling', 'qty' : 10, 'how much is' : 31.70},
                          {'title' : 'Game of Thrones', 'author' : 'A. M. M. Martin', 'qty' : 10, 'how much is' : 53.80}
                          ]
-    
+
     bookStoresInfo = [(AID(name='Cultura'), bookslist_Cultura),
                       (AID(name='Saraiva'), booksList_Saraiva)]
-    
+
     order = {'title' : 'The Lord of the Rings', 'author' : 'J. R. R. Tolkien', 'qty' : 5}
-    
-    #set_ams('localhost', 8000)
-    
-    agents = []
+
     #saraiva = BookstoreAgent(AID(name='Saraiva@192.168.0.100:2002'), booksList_Saraiva)
     saraiva = BookstoreAgent(AID(name='Saraiva'), booksList_Saraiva)
     saraiva.set_ams()
-    agents.append(saraiva)
-    
+    agents = [saraiva]
     #cultura = BookstoreAgent(AID(name='Cultura@192.168.0.100:2003'), bookslist_Cultura)
     cultura = BookstoreAgent(AID(name='Cultura'), bookslist_Cultura)
     cultura.set_ams()
     agents.append(cultura)
-    
+
     start_loop(agents)

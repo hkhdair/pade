@@ -69,8 +69,8 @@ class ComportVerifyConnTimed(TimedBehaviour):
 
     def on_time(self):
         super(ComportVerifyConnTimed, self).on_time()
-        desconnect_agents = list()
-        table = list([['agent', 'delta']])
+        desconnect_agents = []
+        table = [['agent', 'delta']]
         for agent_name, date in self.agent.agents_conn_time.items():
             now = datetime.now()
             delta = now - date
@@ -78,7 +78,7 @@ class ComportVerifyConnTimed(TimedBehaviour):
             if delta.total_seconds() > 20.0:
                 desconnect_agents.append(agent_name)
                 self.agent.agentInstance.table.pop(agent_name)
-                display_message(self.agent.aid.name, 'Agent {} disconnected.'.format(agent_name))    
+                display_message(self.agent.aid.name, f'Agent {agent_name} disconnected.')    
 
         for agent_name in desconnect_agents:
             self.agent.agents_conn_time.pop(agent_name)
@@ -131,8 +131,11 @@ class PublisherBehaviour(FipaSubscribeProtocol):
         sender = message.sender
 
         if sender in self.agent.agentInstance.table.values():
-            display_message(self.agent.aid.name,
-                            'Failure when Identifying agent ' + sender.name)
+            display_message(
+                self.agent.aid.name,
+                f'Failure when Identifying agent {sender.name}',
+            )
+
 
             # prepares the answer message
             reply = message.create_reply()
@@ -159,7 +162,10 @@ class PublisherBehaviour(FipaSubscribeProtocol):
             self.agent.agents_conn_time[message.sender.name] = datetime.now()
 
             display_message(
-                self.agent.aid.name, 'Agent ' + sender.name + ' successfully identified.')
+                self.agent.aid.name,
+                f'Agent {sender.name} successfully identified.',
+            )
+
 
             # prepares and sends answer messages to the agent
             reply = message.create_reply()
@@ -202,49 +208,49 @@ class CompVerifyRegister(FipaRequestProtocol):
     def handle_request(self, message):
         super(CompVerifyRegister, self).handle_request(message)
         content = loads(message.content)
-        display_message(self.agent.aid.name,
-                        'Validating agent ' + message.sender.name + ' session.')
-        if type(content) == dict:
-            if content['ref'] == "REGISTER":
-                user_login = content['content']['user_login']
-                session_name = content['content']['session_name']
+        display_message(
+            self.agent.aid.name, f'Validating agent {message.sender.name} session.'
+        )
 
-                # procedure to verify session user and data
-                # of the requested session.
+        if type(content) == dict and content['ref'] == "REGISTER":
+            user_login = content['content']['user_login']
+            session_name = content['content']['session_name']
 
-                # searches in the database if there is a session with this name.
-                session = Session.query.filter_by(name=session_name).first()
-                if session is None:
-                    reply = message.create_reply()
-                    reply.set_performative(ACLMessage.INFORM)
-                    reply.set_content(dumps({'ref': 'REGISTER',
-                                             'content': False}))
-                    self.agent.call_later(1.0, self.agent.send, reply)
+            # procedure to verify session user and data
+            # of the requested session.
+
+            # searches in the database if there is a session with this name.
+            session = Session.query.filter_by(name=session_name).first()
+            if session is None:
+                reply = message.create_reply()
+                reply.set_performative(ACLMessage.INFORM)
+                reply.set_content(dumps({'ref': 'REGISTER',
+                                         'content': False}))
+                self.agent.call_later(1.0, self.agent.send, reply)
+            else:
+                # verifies if the user is logged in the session.
+                users = session.users
+                for user in users:
+                    if user.username == user_login['username']:
+                        if user.verify_password(user_login['password']):
+                            validation = True
+                            display_message(self.agent.aid.name,
+                                            'Session successfully validated.')
+                        else:
+                            validation = False
+                            display_message(self.agent.aid.name,
+                                            'Session not validated -> Incorrect password.')
+                        break
                 else:
-                    # verifies if the user is logged in the session.
-                    users = session.users
-                    for user in users:
-                        if user.username == user_login['username']:
-                            if user.verify_password(user_login['password']):
-                                validation = True
-                                display_message(self.agent.aid.name,
-                                                'Session successfully validated.')
-                                break
-                            else:
-                                validation = False
-                                display_message(self.agent.aid.name,
-                                                'Session not validated -> Incorrect password.')
-                                break
-                    else:
-                        display_message(self.agent.aid.name,
-                                        'Session not validated -> Incorrect password.')
-                        validation = False
+                    display_message(self.agent.aid.name,
+                                    'Session not validated -> Incorrect password.')
+                    validation = False
 
-                    reply = message.create_reply()
-                    reply.set_performative(ACLMessage.INFORM)
-                    reply.set_content(dumps({'ref': 'REGISTER',
-                                             'content': validation}))
-                    self.agent.send(reply)
+                reply = message.create_reply()
+                reply.set_performative(ACLMessage.INFORM)
+                reply.set_content(dumps({'ref': 'REGISTER',
+                                         'content': validation}))
+                self.agent.send(reply)
 
 class AMS(Agent_):
     """This is the class that implements the AMS agent."""
@@ -259,15 +265,15 @@ class AMS(Agent_):
         self.session_name = str(uuid.uuid1())[:13]
         self.ams = {'name': host, 'port': port}
 
-        self.ams_aid = AID('ams@' + str(host) + ':' + str(port))
+        self.ams_aid = AID(f'ams@{str(host)}:{str(port)}')
         super(AMS, self).__init__(self.ams_aid, debug=debug)
         self.ams = {'name':str(host),'port':str(port)}
-        super(AMS, self).update_ams(self.ams)      
+        super(AMS, self).update_ams(self.ams)
         self.host = host
         self.port = port
         self.main_ams = main_ams
 
-        self.agents_conn_time = dict()
+        self.agents_conn_time = {}
         self.comport_ident = PublisherBehaviour(self)
 
         # message to check the connection.
@@ -320,7 +326,7 @@ class AMS(Agent_):
             # registers the users, in case they exist, in the database
 
             if len(self.users) != 0:
-                users_db = list()
+                users_db = []
                 for user in self.users:
                     u = User(username=user['username'],
                              email=user['email'],
@@ -331,7 +337,6 @@ class AMS(Agent_):
                 db.session.add_all(users_db)
                 db.session.commit()
 
-        # in case there is a session with this name
         else:
             self._verify_user_in_session(self.session)
 
@@ -348,7 +353,7 @@ if __name__ == '__main__':
     METADATA = MetaData()
     METADATA.bind = ENGINE
     AGENTS = Table('agents', METADATA, autoload=True, autoload_with=ENGINE)
-    
+
     ams = AMS(port=int(sys.argv[4]))
     # instantiates AMS agent and calls listenTCP method
     # from Twisted to launch the agent
@@ -357,8 +362,11 @@ if __name__ == '__main__':
                       email=sys.argv[2],
                       password=sys.argv[3])
     ams._initialize_database()
-    reactor.callLater(0.1,
-                      display_message,
-                      'ams@{}:{}'.format(ams.ams['name'], ams.ams['port']),
-                      'PADE AMS service running right now....')
+    reactor.callLater(
+        0.1,
+        display_message,
+        f"ams@{ams.ams['name']}:{ams.ams['port']}",
+        'PADE AMS service running right now....',
+    )
+
     reactor.run()

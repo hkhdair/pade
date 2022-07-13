@@ -34,7 +34,7 @@ def display_message(name, data):
     """
     date = datetime.now()
     date = date.strftime('%d/%m/%Y %H:%M:%S.%f')[:-3]
-    click.echo(click.style('[{}] {} --> '.format(name, date), fg='green') + str(data))
+    click.echo(click.style(f'[{name}] {date} --> ', fg='green') + str(data))
     # print('[' + name + '] ' + date + str(data))
 
 
